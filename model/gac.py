@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import numpy as np
 
+
 class GC:
     'Gamma Correction'
 
@@ -25,5 +26,24 @@ class GC:
                     gc_img[y, x, 0] = self.lut[0][self.img[y, x, 0]]
                     gc_img[y, x, 1] = self.lut[1][self.img[y, x, 1]]
                     gc_img[y, x, 2] = self.lut[1][self.img[y, x, 2]]
+        self.img = gc_img
+        return self.img
+
+
+class VectorizedGC:
+    'Gamma Correction'
+
+    def __init__(self, img, lut, mode):
+        self.img = img
+        self.lut = lut
+        self.mode = mode
+
+    def execute(self):
+        if self.mode == 'rgb':
+            gc_img = self.lut[self.img] / 4
+        elif self.mode == 'yuv':
+            gc_img = np.take(self.lut, self.img, axis=1)
+        else:
+            raise ValueError(f"Invalid mode: {self.mode}")
         self.img = gc_img
         return self.img

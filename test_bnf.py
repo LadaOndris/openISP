@@ -293,10 +293,11 @@ print(50*'-' + '\nLoading RAW Image Done......')
 bnf = BNF(rawimg, bnf_dw, bnf_rw, bnf_rthres, bnf_clip)
 # yuvimg_bnf = bnf.execute()
 # change yuvimg to rawimg
+# plt.imshow(yuvimg_bnf, cmap='gray')
 rawimg_bnf = bnf.execute()
 print(50*'-' + '\nBilateral Filtering Done......')
-#plt.imshow(yuvimg_bnf, cmap='gray')
-#plt.show()
+plt.imshow(rawimg_bnf, cmap='gray')
+plt.show()
 
 # # edge enhancement
 # ee = EE(yuvimg_bnf[:,:], edge_filter, ee_gain, ee_thres, ee_emclip)
