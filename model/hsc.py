@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import numpy as np
 
+
 class HSC:
     'Hue Saturation Control'
 
@@ -10,27 +11,23 @@ class HSC:
         self.saturation = saturation
         self.clip = clip
 
-    def clipping(self):
-        np.clip(self.img, 0, self.clip, out=self.img)
-        return self.img
-
-    def lut(self):
-        ind = np.array([i for i in range(360)])
-        sin = np.sin(ind * np.pi / 180) * 256
-        cos = np.cos(ind * np.pi / 180) * 256
-        lut_sin = dict(zip(ind, [round(sin[i]) for i in ind]))
-        lut_cos = dict(zip(ind, [round(cos[i]) for i in ind]))
-        return lut_sin, lut_cos
+        hue_offset = np.pi * self.hue / 180
+        self.sin_hue = (256 * np.sin(hue_offset)).astype(np.int32)  # x256
+        self.cos_hue = (256 * np.cos(hue_offset)).astype(np.int32)  # x256
+        self.saturation_gain = np.array(self.saturation, dtype=np.int32)  # x256
 
     def execute(self):
-        lut_sin, lut_cos = self.lut()
-        img_h = self.img.shape[0]
-        img_w = self.img.shape[1]
-        img_c = self.img.shape[2]
-        hsc_img = np.empty((img_h, img_w, img_c), np.int16)
-        hsc_img[:,:,0] = (self.img[:,:,0] - 128) * lut_cos[self.hue] + (self.img[:,:,1] - 128) * lut_sin[self.hue] + 128
-        hsc_img[:,:,1] = (self.img[:,:,1] - 128) * lut_cos[self.hue] - (self.img[:,:,0] - 128) * lut_sin[self.hue] + 128
-        hsc_img[:,:,0] = self.saturation * (self.img[:,:,0] - 128) / 256 + 128
-        hsc_img[:,:,1] = self.saturation * (self.img[:,:,1] - 128) / 256 + 128
-        self.img = hsc_img
-        return self.clipping()
+        cbcr_image = self.img.astype(np.int32)
+
+        cb_image, cr_image = np.split(cbcr_image, 2, axis=2)
+
+        hsc_cb_image = np.right_shift(self.cos_hue * (cb_image - 128) - self.sin_hue * (cr_image - 128), 8)  # x256
+        hsc_cb_image = np.right_shift(self.saturation_gain * hsc_cb_image, 8) + 128
+
+        hsc_cr_image = np.right_shift(self.sin_hue * (cb_image - 128) + self.cos_hue * (cr_image - 128), 8)  # x256
+        hsc_cr_image = np.right_shift(self.saturation_gain * hsc_cr_image, 8) + 128
+
+        hsc_cbcr_image = np.dstack([hsc_cr_image, hsc_cb_image])
+        hsc_cbcr_image = np.clip(hsc_cbcr_image, 0, self.clip)
+
+        return hsc_cbcr_image.astype(np.uint8)
